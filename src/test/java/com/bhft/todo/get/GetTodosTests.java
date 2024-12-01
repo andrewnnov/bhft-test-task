@@ -2,11 +2,13 @@ package com.bhft.todo.get;
 
 
 import com.bhft.todo.BaseTest;
+import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import com.todo.models.Todo;
 
@@ -21,6 +23,7 @@ public class GetTodosTests extends BaseTest {
     @Test
     public void testGetTodosWhenDatabaseIsEmpty() {
         given()
+                .filter(new AllureRestAssured())
                 .when()
                 .get("/todos")
                 .then()
@@ -40,6 +43,7 @@ public class GetTodosTests extends BaseTest {
 
         Response response =
                 given()
+                        .filter(new AllureRestAssured())
                         .when()
                         .get("/todos")
                         .then()
@@ -69,6 +73,7 @@ public class GetTodosTests extends BaseTest {
 
         Response response =
                 given()
+                        .filter(new AllureRestAssured())
                         .queryParam("offset", 2)
                         .queryParam("limit", 2)
                         .when()
@@ -87,5 +92,68 @@ public class GetTodosTests extends BaseTest {
 
         Assertions.assertEquals(4, todos[1].getId());
         Assertions.assertEquals("Task 4", todos[1].getText());
+    }
+
+    @Test
+    public void testGetTodosWithInvalidOffsetAndLimit() {
+        // Тест с отрицательным offset
+        given()
+                .filter(new AllureRestAssured())
+                .queryParam("offset", -1)
+                .queryParam("limit", 2)
+                .when()
+                .get("/todos")
+                .then()
+                .statusCode(400)
+                .contentType("text/plain")
+                .body(containsString("Invalid query string"));
+
+        // Тест с нечисловым limit
+        given()
+                .filter(new AllureRestAssured())
+                .queryParam("offset", 0)
+                .queryParam("limit", "abc")
+                .when()
+                .get("/todos")
+                .then()
+                .statusCode(400)
+                .contentType("text/plain")
+                .body(containsString("Invalid query string"));
+
+        // Тест с отсутствующим значением offset
+        given()
+                .filter(new AllureRestAssured())
+                .queryParam("offset", "")
+                .queryParam("limit", 2)
+                .when()
+                .get("/todos")
+                .then()
+                .statusCode(400)
+                .contentType("text/plain")
+                .body(containsString("Invalid query string"));
+    }
+
+    @Test
+    public void testGetTodosWithExcessiveLimit() {
+        // Создаем 10 TODO
+        for (int i = 1; i <= 10; i++) {
+            createTodo(new Todo(i, "Task " + i, i % 2 == 0));
+        }
+
+        Response response =
+                given()
+                        .filter(new AllureRestAssured())
+                        .queryParam("limit", 1000)
+                        .when()
+                        .get("/todos")
+                        .then()
+                        .statusCode(200)
+                        .contentType("application/json")
+                        .extract().response();
+
+        Todo[] todos = response.getBody().as(Todo[].class);
+
+        // Проверяем, что вернулось 10 задач
+        Assertions.assertEquals(10, todos.length);
     }
 }
