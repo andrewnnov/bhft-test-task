@@ -2,17 +2,21 @@ package com.bhft.todo.get;
 
 
 import com.bhft.todo.BaseTest;
+import io.qameta.allure.*;
 import io.qameta.allure.restassured.AllureRestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import com.todo.models.Todo;
 
-
+@Epic("TODO Management")
+@Feature("Get Todos API")
 public class GetTodosTests extends BaseTest {
 
     @BeforeEach
@@ -21,6 +25,7 @@ public class GetTodosTests extends BaseTest {
     }
 
     @Test
+    @Description("Получение пустого списка TODO, когда база данных пуста")
     public void testGetTodosWhenDatabaseIsEmpty() {
         given()
                 .filter(new AllureRestAssured())
@@ -28,11 +33,12 @@ public class GetTodosTests extends BaseTest {
                 .get("/todos")
                 .then()
                 .statusCode(200)
-                .contentType("application/json")
+                .contentType(ContentType.JSON)
                 .body("", hasSize(0));
     }
 
     @Test
+    @Description("Получение списка TODO с существующими записями")
     public void testGetTodosWithExistingEntries() {
         // Предварительно создать несколько TODO
         Todo todo1 = new Todo(1, "Task 1", false);
@@ -65,6 +71,7 @@ public class GetTodosTests extends BaseTest {
     }
 
     @Test
+    @Description("Использование параметров offset и limit для пагинации")
     public void testGetTodosWithOffsetAndLimit() {
         // Создаем 5 TODO
         for (int i = 1; i <= 5; i++) {
@@ -95,6 +102,7 @@ public class GetTodosTests extends BaseTest {
     }
 
     @Test
+    @DisplayName("Передача некорректных значений в offset и limit")
     public void testGetTodosWithInvalidOffsetAndLimit() {
         // Тест с отрицательным offset
         given()
@@ -134,6 +142,7 @@ public class GetTodosTests extends BaseTest {
     }
 
     @Test
+    @DisplayName("Проверка ответа при превышении максимально допустимого значения limit")
     public void testGetTodosWithExcessiveLimit() {
         // Создаем 10 TODO
         for (int i = 1; i <= 10; i++) {
